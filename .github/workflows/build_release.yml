@@ -1,0 +1,57 @@
+name: Build Debian package
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: python:3.12-bookworm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate version string for tag
+        if: github.ref_type == 'tag'
+        run: |
+          REF=${{ github.ref_name }}
+          REF_STRIPPED=${REF:1}
+          VERSION=${REF_STRIPPED/-anx.v/.}
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+        shell: bash
+      - name: Generate version string for branch
+        if: github.ref_type != 'tag'
+        run: |
+          echo "VERSION=0.0.0" >> $GITHUB_ENV
+        shell: bash
+      - name: Install prerequisites
+        run: |
+          apt update && apt install -y build-essential cmake pkg-config ninja-build swig ca-certificates libssl-dev libsasl2-dev libwebsockets-dev
+          pip install -U -r python/ci_requirements.txt
+        shell: bash
+      - name: Build
+        run: |
+          echo "Building for version ${{ env.VERSION }}"
+          echo ${{ env.VERSION }} > VERSION.txt
+          mkdir -p build out
+          cmake ./ -B build -DCMAKE_INSTALL_PREFIX=install/usr -DBUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF -DBUILD_CPP=OFF
+          cmake --build build -t install
+          cp build/python/dist/* out/
+          echo "WHL_FILE=$(echo out/*.whl | xargs -n1 basename)" >> $GITHUB_ENV
+          cp -r ci/DEBIAN install/
+          sed -i s/VERSION/${{ env.VERSION }}/ install/DEBIAN/control
+          dpkg-deb --build install out/libqpid-proton11-linux_x86_64.deb
+        shell: bash
+      - name: Upload .deb file
+        uses: actions/upload-artifact@v4
+        with:
+          name: libqpid-proton11-linux_x86_64.deb
+          path: out/libqpid-proton11-linux_x86_64.deb
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.WHL_FILE }}
+          path: out/${{ env.WHL_FILE }}
+      - name: Create release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          files: out/*
