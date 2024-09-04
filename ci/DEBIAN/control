@@ -1,0 +1,7 @@
+Package: libqpid-proton11
+Architecture: amd64
+Version: VERSION
+Section: libs
+Priority: optional
+Maintainer: Anexia <opensource@anexia-it.com>
+Description: Anexia fork build for qpid proton
