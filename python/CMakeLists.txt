@@ -61,6 +61,7 @@ set(py_dist_files
     docs/index.rst
     docs/overview.rst
     docs/tutorial.rst
+    proton/py.typed
     )
 
 # Sphinx documentation

@@ -59,3 +59,6 @@ py-modules = ["cproton"]
 
 [tool.setuptools.dynamic]
 version = {file = "VERSION.txt"}
+
+[tool.setuptools.package-data]
+"proton" = ["py.typed"]
